@@ -1,12 +1,12 @@
 name: CI and CT with GitHub Actions and Maven 
 run-name: ${{ github.actor }} has triggered the workflow
 
-# set up the action on push and pull_request in the main branch
+# set up the action on push and pull_request in the master branch
 on: 
   push:
-    branches: ["main"]
+    branches: ["master"]
   pull_request:
-    branches: ["main"]
+    branches: ["master"]
     
 # define jobs
 jobs:
