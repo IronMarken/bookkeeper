@@ -30,7 +30,7 @@ jobs:
           
       # build and run tests as reported in Bookkeeper documentation    
       - name: Build and run tests
-        run: mvn clean package
+        run: mvn clean verify
       
       
       
