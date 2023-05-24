@@ -45,15 +45,15 @@ jobs:
           
       # build, run tests and report on Sonar
       - name: Build, run tests and report to Sonar
+        env:
+            GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=IronMarken_bookkeeper
     
       # upload the report as artifact
       - name: Upload coverage results
         uses: actions/upload-artifact@v3
         with:
-          env:
-            GITHUB_TOKEN = {{ secrets.GIT_TOKEN }}
-            SONAR_TOKEN = {{ secrets.SONAR_TOKEN }}
           name: report-jacoco
           path: coverage/target/site/jacoco-aggregate/
           if-no-files-found: error
