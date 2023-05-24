@@ -29,7 +29,7 @@ jobs:
           
       # sonar cache
       - name: Cache SonarCloud packages
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
@@ -44,11 +44,9 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
           
       # build, run tests and report on Sonar
-      - name: Build, run tests and generates reports
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn clean verify sonar:sonar -Dsonar.projectKey=IronMarken_bookkeeper
-      
+      - name: Build, run tests and report to Sonar
+        run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=IronMarken_bookkeeper
+    
       # upload the report as artifact
       - name: Upload coverage results
         uses: actions/upload-artifact@v3
