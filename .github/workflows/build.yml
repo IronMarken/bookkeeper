@@ -51,6 +51,9 @@ jobs:
       - name: Upload coverage results
         uses: actions/upload-artifact@v3
         with:
+          env:
+            GITHUB_TOKEN = {{ secrets.GIT_TOKEN }}
+            SONAR_TOKEN = {{ secrets.SONAR_TOKEN }}
           name: report-jacoco
           path: coverage/target/site/jacoco-aggregate/
           if-no-files-found: error
