@@ -1,4 +1,4 @@
-name: CI and CT with GitHub Actions and Maven 
+name: CI and CT (Control Flow Coverage)
 run-name: ${{ github.actor }} has triggered the workflow
 
 # set up the action on push and pull_request in the master branch
