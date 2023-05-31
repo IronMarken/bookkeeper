@@ -1,0 +1,63 @@
+name: CI and CT (Control Flow Coverage)
+run-name: ${{ github.actor }} has triggered the workflow
+
+# set up the action on push and pull_request in the master branch
+on: 
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+    
+# define jobs
+jobs:
+  Build-and-run-tests:
+  
+    # Linux-like test env
+    runs-on: ubuntu-latest
+    steps:
+      # checkout repository
+      - name: Check out repository
+        uses: actions/checkout@v3
+      
+      # set up JDK 
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: maven
+          
+      # sonar cache
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      
+      # maven cache
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+          
+      # build, run tests and report on Sonar
+      - name: Build, run tests and report to Sonar
+        env:
+            GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=IronMarken_bookkeeper -P Control-flow-Coverage
+    
+      # upload the report as artifact
+      - name: Upload coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: report-jacoco
+          path: coverage/target/site/jacoco-aggregate/
+          if-no-files-found: error
+      
+      
+      
+      
