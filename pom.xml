@@ -1102,12 +1102,9 @@
   </build>
   <profiles>
     <profile>
-      <id>Coverage</id>
+      <id>Control-flow-Coverage</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
-        <property>
-          <name>!skipCoverage</name>
-        </property>
+        <activeByDefault>false</activeByDefault>
       </activation>
       <build>
         <plugins>

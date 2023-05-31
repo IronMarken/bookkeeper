@@ -48,7 +48,7 @@ jobs:
         env:
             GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
             SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=IronMarken_bookkeeper
+        run: mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=IronMarken_bookkeeper -P Control-flow-Coverage
     
       # upload the report as artifact
       - name: Upload coverage results
