@@ -36,7 +36,7 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
           
       # build, run tests and generate Ba-dua report
-      - name: Build, run tests and generate Ba-dua rport
+      - name: Build, run tests and generate Ba-dua report
         env:
             GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
         run: mvn clean verify -P Data-flow-Coverage
