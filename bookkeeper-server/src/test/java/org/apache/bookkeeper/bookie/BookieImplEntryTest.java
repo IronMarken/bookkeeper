@@ -234,7 +234,7 @@ public class BookieImplEntryTest {
                     //ackBeforeSync     ctx             masterKey                     entry list to read                expectedException
                     {true,              null,           MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        false},
                     {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        false},
-                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        true },
+                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        false},
                     {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ONE_NOT_VALID,    true },
                     {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ONE_NULL,         true },
                     {false,             new Object(),   MasterKeyStatus.NULL_KEY,     EntryListStatus.ALL_VALID,        true },
