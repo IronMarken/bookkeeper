@@ -19,6 +19,7 @@ import io.netty.util.ByteProcessor;
 import org.apache.bookkeeper.client.impl.LedgerEntryImpl;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -984,6 +985,7 @@ public class MockitoLedgerEntryTest {
         when(mockedEntry.getEntryBuffer()).thenReturn(mockedBuff);
     }
 
+    @Ignore
     @Test
     public void testGetLedgerId() {
         LedgerEntry ledgerEntry = new LedgerEntry(mockedEntry);

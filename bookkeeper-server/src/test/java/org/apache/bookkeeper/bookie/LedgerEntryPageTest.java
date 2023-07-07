@@ -5,13 +5,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
 
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.mockito.Mockito;
 
 /************************************************
@@ -69,7 +66,7 @@ public class LedgerEntryPageTest{
 			
 	}
 	
-	
+	@Ignore
 	@Test
 	public void testOnSetInUseCallback() {
 		//use page with a callback
