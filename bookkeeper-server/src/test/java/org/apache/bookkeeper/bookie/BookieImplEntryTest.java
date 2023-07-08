@@ -11,6 +11,7 @@ import org.apache.bookkeeper.utils.TestBookieImpl;
 import org.apache.commons.io.FileUtils;
 import org.junit.*;
 import org.junit.experimental.runners.Enclosed;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.Mockito;
@@ -51,6 +52,8 @@ public class BookieImplEntryTest {
         private File ledgerTempDir;
         private Bookie bookieUnderTest;
 
+        @Rule
+        public Timeout globalTimeout = Timeout.seconds(10);
 
         @Parameterized.Parameters
         public static Collection<Object[]> testParameters() {
@@ -227,6 +230,9 @@ public class BookieImplEntryTest {
         private File ledgerTempDir;
         private Bookie bookieUnderTest;
         private int numberOfInsert;
+
+        @Rule
+        public Timeout globalTimeout = Timeout.seconds(10);
 
         @Parameterized.Parameters
         public static Collection<Object[]> testParameters() {
