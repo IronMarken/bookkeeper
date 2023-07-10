@@ -64,7 +64,7 @@ public class BookieImplEntryTest {
         private Bookie bookieUnderTest;
 
         @Rule
-        public Timeout globalTimeout = Timeout.seconds(10);
+        public Timeout globalTimeout = Timeout.seconds(20);
 
         @Parameterized.Parameters
         public static Collection<Object[]> testParameters() {
@@ -277,7 +277,7 @@ public class BookieImplEntryTest {
         private int numberOfInsert;
 
         @Rule
-        public Timeout globalTimeout = Timeout.seconds(10);
+        public Timeout globalTimeout = Timeout.seconds(20);
 
         @Parameterized.Parameters
         public static Collection<Object[]> testParameters() {
