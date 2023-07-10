@@ -5,8 +5,6 @@ import io.netty.buffer.Unpooled;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import org.apache.bookkeeper.conf.ServerConfiguration;
 import org.apache.bookkeeper.discover.RegistrationManager;
-import org.apache.bookkeeper.meta.LedgerManager;
-import org.apache.bookkeeper.meta.LedgerManagerFactory;
 import org.apache.bookkeeper.meta.MetadataBookieDriver;
 import org.apache.bookkeeper.meta.NullMetadataBookieDriver;
 import org.apache.bookkeeper.net.BookieId;
@@ -58,6 +56,7 @@ public class BookieImplEntryTest {
         private boolean expectedException;
         private boolean isLedgerFenced;
         private boolean isRecoveryMode;
+        private boolean isStorageOffline;
         private BookkeeperInternalCallbacks.WriteCallback mockedCallback;
         private File journalTempDir;
         private File ledgerTempDir;
@@ -69,37 +68,39 @@ public class BookieImplEntryTest {
         @Parameterized.Parameters
         public static Collection<Object[]> testParameters() {
             return Arrays.asList(new Object[][]{
-                    //   entry                      ackBeforeSync   ctx           masterKey                       entry to read                       isLedgerFenced    is bookie in recovery mode      expectedException
-                    {EntryStatus.VALID_ENTRY,       true,           null,         MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          false}, // expected true is false
-                    {EntryStatus.VALID_ENTRY,       true,           new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          false},
-                    {EntryStatus.VALID_ENTRY,       true,           new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            true,                           false},
-                    {EntryStatus.VALID_ENTRY,       true,           new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            true,                           false},
-                    {EntryStatus.VALID_ENTRY,       true,           new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     true,             true,                           true },
-                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          false},
-                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     true,             false,                          true },
-                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            true,                           false},
-                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     true,             true,                           true },
-                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.NOT_EXISTING_ENTRY, false,            false,                          true },
-                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.NOT_EXISTING_ENTRY, true,             false,                          true },
-                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.NOT_EXISTING_ENTRY, false,            true,                           true },
-                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.NOT_EXISTING_ENTRY, true,             true,                           true },
-                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.NULL_KEY,       ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          true },
-                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.NULL_KEY,       ReadEntryStatus.NOT_EXISTING_ENTRY, false,            false,                          true },
-                    {EntryStatus.NOT_VALID_ENTRY,   false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          true },
-                    {EntryStatus.NOT_VALID_ENTRY,   false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.NOT_EXISTING_ENTRY, false,            false,                          true },
-                    {EntryStatus.NOT_VALID_ENTRY,   false,          new Object(), MasterKeyStatus.NULL_KEY,       ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          true },
-                    {EntryStatus.NOT_VALID_ENTRY,   false,          new Object(), MasterKeyStatus.NULL_KEY,       ReadEntryStatus.NOT_EXISTING_ENTRY, false,            false,                          true },
-                    {EntryStatus.NULL_ENTRY,        false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          true }
+                    //   entry                      ackBeforeSync   ctx           masterKey                       entry to read                       isLedgerFenced    is bookie in recovery mode      isStorageOffline     expectedException
+                    {EntryStatus.VALID_ENTRY,       true,           null,         MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          false,               false}, // expected true is false
+                    {EntryStatus.VALID_ENTRY,       true,           new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          false,               false},
+                    {EntryStatus.VALID_ENTRY,       true,           new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            true,                           false,               false},
+                    {EntryStatus.VALID_ENTRY,       true,           new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            true,                           false,               false},
+                    {EntryStatus.VALID_ENTRY,       true,           new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            true,                           true,                false},
+                    {EntryStatus.VALID_ENTRY,       true,           new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     true,             true,                           false,               true },
+                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          false,               false},
+                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     true,             false,                          false,               true },
+                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            true,                           false,               false},
+                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     true,             true,                           false,               true },
+                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.NOT_EXISTING_ENTRY, false,            false,                          false,               true },
+                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.NOT_EXISTING_ENTRY, true,             false,                          false,               true },
+                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.NOT_EXISTING_ENTRY, false,            true,                           false,               true },
+                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.NOT_EXISTING_ENTRY, true,             true,                           false,               true },
+                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.NULL_KEY,       ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          false,               true },
+                    {EntryStatus.VALID_ENTRY,       false,          new Object(), MasterKeyStatus.NULL_KEY,       ReadEntryStatus.NOT_EXISTING_ENTRY, false,            false,                          false,               true },
+                    {EntryStatus.NOT_VALID_ENTRY,   false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          false,               true },
+                    {EntryStatus.NOT_VALID_ENTRY,   false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.NOT_EXISTING_ENTRY, false,            false,                          false,               true },
+                    {EntryStatus.NOT_VALID_ENTRY,   false,          new Object(), MasterKeyStatus.NULL_KEY,       ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          false,               true },
+                    {EntryStatus.NOT_VALID_ENTRY,   false,          new Object(), MasterKeyStatus.NULL_KEY,       ReadEntryStatus.NOT_EXISTING_ENTRY, false,            false,                          false,               true },
+                    {EntryStatus.NULL_ENTRY,        false,          new Object(), MasterKeyStatus.VALID_KEY,      ReadEntryStatus.EXISTING_ENTRY,     false,            false,                          false,               true }
             });
         }
 
-        public AddEntryTest(EntryStatus entryStatus, boolean ackBeforeSync, Object ctx, MasterKeyStatus masterKeyStatus, ReadEntryStatus readEntryStatus, boolean isLedgerFenced, boolean isRecoveryMode, boolean expectedException) {
+        public AddEntryTest(EntryStatus entryStatus, boolean ackBeforeSync, Object ctx, MasterKeyStatus masterKeyStatus, ReadEntryStatus readEntryStatus, boolean isLedgerFenced, boolean isRecoveryMode, boolean isStorageOffline, boolean expectedException) {
             // setup all test parameters
             this.ackBeforeSync = ackBeforeSync;
             this.ctx = ctx;
             this.expectedException = expectedException;
             this.isLedgerFenced = isLedgerFenced;
             this.isRecoveryMode = isRecoveryMode;
+            this.isStorageOffline = isStorageOffline;
             this.setEntry(entryStatus);
             this.setMasterKey(masterKeyStatus);
             this.setReadLedger(readEntryStatus);
@@ -165,6 +166,9 @@ public class BookieImplEntryTest {
             Mockito.doNothing().when(this.mockedCallback).writeComplete(Mockito.isA(Integer.class), Mockito.isA(Long.class), Mockito.isA(Long.class), Mockito.isA(BookieId.class), Mockito.isA(Object.class));
             ServerConfiguration serverConf = TestBKConfiguration.newServerConfiguration();
 
+            if(!BookieImpl.format(serverConf, false, false))
+                Assert.fail();
+
             // setup the bookie for the test
             try {
                 // create dir for journal and ledger here to reset on next test
@@ -187,9 +191,13 @@ public class BookieImplEntryTest {
                     LedgerStorage ledgerStorage = Mockito.mock(LedgerStorage.class);
                     //configure behaviour
                     Mockito.when(ledgerStorage.isFenced(Mockito.any(long.class))).thenReturn(true);
+                    if(isStorageOffline)
+                        ledgerStorage = BookieImpl.mountLedgerStorageOffline(serverConf, ledgerStorage);
                     this.bookieUnderTest = new BookieImpl(serverConf, registrationManager, ledgerStorage, diskChecker, ledgerDirsManager, indexDirsManager,  NullStatsLogger.INSTANCE,UnpooledByteBufAllocator.DEFAULT, new SimpleBookieServiceInfoProvider(serverConf));
 
                 }else {
+                    if(isStorageOffline)
+                        BookieImpl.mountLedgerStorageOffline(serverConf, null);
                     this.bookieUnderTest = new TestBookieImpl(serverConf);
                 }
             } catch (Exception e) {
@@ -273,6 +281,7 @@ public class BookieImplEntryTest {
         private File ledgerTempDir;
         private boolean isLedgerFenced;
         private boolean isRecoveryMode;
+        private boolean isStorageOffline;
         private Bookie bookieUnderTest;
         private int numberOfInsert;
 
@@ -282,21 +291,22 @@ public class BookieImplEntryTest {
         @Parameterized.Parameters
         public static Collection<Object[]> testParameters() {
             return Arrays.asList(new Object[][]{
-                    //ackBeforeSync     ctx             masterKey                     entry list to read                is ledger fenced    is bookie in recovery mode      expectedException
-                    {true,              null,           MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        false,              false,                          false}, // expected true is false
-                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        false,              false,                          false},
-                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        false,              true,                           false},
-                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        true,               true,                           true },
-                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        true,               false,                          true },
-                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ONE_NOT_VALID,    false,              false,                          true },
-                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ONE_NULL,         false,              false,                          true },
-                    {false,             new Object(),   MasterKeyStatus.NULL_KEY,     EntryListStatus.ALL_VALID,        false,              false,                          true },
-                    {false,             new Object(),   MasterKeyStatus.NULL_KEY,     EntryListStatus.ONE_NOT_VALID,    false,              false,                          true },
-                    {false,             new Object(),   MasterKeyStatus.NULL_KEY,     EntryListStatus.ONE_NULL,         false,              false,                          true }
+                    //ackBeforeSync     ctx             masterKey                     entry list to read                is ledger fenced    is bookie in recovery mode      isStorageOffline    expectedException
+                    {true,              null,           MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        false,              false,                          false,              false}, // expected true is false
+                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        false,              false,                          false,              false},
+                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        false,              true,                           false,              false},
+                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        false,              true,                           true,               false},
+                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        true,               true,                           false,              true },
+                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ALL_VALID,        true,               false,                          false,              true },
+                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ONE_NOT_VALID,    false,              false,                          false,              true },
+                    {false,             new Object(),   MasterKeyStatus.VALID_KEY,    EntryListStatus.ONE_NULL,         false,              false,                          false,              true },
+                    {false,             new Object(),   MasterKeyStatus.NULL_KEY,     EntryListStatus.ALL_VALID,        false,              false,                          false,              true },
+                    {false,             new Object(),   MasterKeyStatus.NULL_KEY,     EntryListStatus.ONE_NOT_VALID,    false,              false,                          false,              true },
+                    {false,             new Object(),   MasterKeyStatus.NULL_KEY,     EntryListStatus.ONE_NULL,         false,              false,                          false,              true }
             });
         }
 
-        public MultiAddEntryTest(boolean ackBeforeSync, Object ctx, MasterKeyStatus masterKeyStatus, EntryListStatus entryListStatus, boolean isLedgerFenced, boolean isRecoveryMode, boolean expectedException) {
+        public MultiAddEntryTest(boolean ackBeforeSync, Object ctx, MasterKeyStatus masterKeyStatus, EntryListStatus entryListStatus, boolean isLedgerFenced, boolean isRecoveryMode,boolean isStorageOffline, boolean expectedException) {
             // setup all test parameters
             this.ackBeforeSync = ackBeforeSync;
             this.ctx = ctx;
@@ -304,6 +314,7 @@ public class BookieImplEntryTest {
             this.setMasterKey(masterKeyStatus);
             this.isLedgerFenced = isLedgerFenced;
             this.isRecoveryMode = isRecoveryMode;
+            this.isStorageOffline = isStorageOffline;
             Random random = new Random();
             // MIN 1 repetition
             this.numberOfInsert = random.nextInt(MAX_REPETITIONS-1)+1;
@@ -391,6 +402,9 @@ public class BookieImplEntryTest {
             Mockito.doNothing().when(this.mockedCallback).writeComplete(Mockito.isA(Integer.class), Mockito.isA(Long.class), Mockito.isA(Long.class), Mockito.isA(BookieId.class), Mockito.isA(Object.class));
             ServerConfiguration serverConf = TestBKConfiguration.newServerConfiguration();
 
+            if(!BookieImpl.format(serverConf, false, true))
+                Assert.fail();
+
             // setup the bookie for the test
             try {
                 // create dir for journal and ledger here to reset on next test
@@ -413,9 +427,13 @@ public class BookieImplEntryTest {
                     LedgerStorage ledgerStorage = Mockito.mock(LedgerStorage.class);
                     //configure behaviour
                     Mockito.when(ledgerStorage.isFenced(Mockito.any(long.class))).thenReturn(true);
+                    if(isStorageOffline)
+                        ledgerStorage = BookieImpl.mountLedgerStorageOffline(serverConf, ledgerStorage);
                     this.bookieUnderTest = new BookieImpl(serverConf, registrationManager, ledgerStorage, diskChecker, ledgerDirsManager, indexDirsManager,  NullStatsLogger.INSTANCE,UnpooledByteBufAllocator.DEFAULT, new SimpleBookieServiceInfoProvider(serverConf));
 
                 }else {
+                    if(isStorageOffline)
+                        BookieImpl.mountLedgerStorageOffline(serverConf, null);
                     this.bookieUnderTest = new TestBookieImpl(serverConf);
                 }
             } catch (Exception e) {
@@ -433,6 +451,7 @@ public class BookieImplEntryTest {
                 // delete dirs
                 FileUtils.deleteDirectory(this.journalTempDir);
                 FileUtils.deleteDirectory(this.ledgerTempDir);
+
             } catch (Exception e) {
                 Assert.fail();
             }
