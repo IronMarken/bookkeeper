@@ -24,7 +24,7 @@ public class Utility {
         ONE_NULL
     }
 
-    public enum ReadLedgerStatus {
+    public enum LedgerStatus {
         EXISTING_LEDGER,
         NOT_EXISTING_LEDGER
     }

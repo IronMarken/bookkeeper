@@ -29,8 +29,8 @@ import java.util.logging.Logger;
 import static org.apache.bookkeeper.utils.Utility.EntryListStatus.*;
 import static org.apache.bookkeeper.utils.Utility.MasterKeyStatus.NULL_KEY;
 import static org.apache.bookkeeper.utils.Utility.MasterKeyStatus.VALID_KEY;
-import static org.apache.bookkeeper.utils.Utility.ReadLedgerStatus.EXISTING_LEDGER;
-import static org.apache.bookkeeper.utils.Utility.ReadLedgerStatus.NOT_EXISTING_LEDGER;
+import static org.apache.bookkeeper.utils.Utility.LedgerStatus.EXISTING_LEDGER;
+import static org.apache.bookkeeper.utils.Utility.LedgerStatus.NOT_EXISTING_LEDGER;
 
 @RunWith(value = Enclosed.class)
 public class SortedLedgerStorageTest {
@@ -54,7 +54,7 @@ public class SortedLedgerStorageTest {
         @Parameterized.Parameters
         public static Collection<Object[]> testParameters() {
             return Arrays.asList(new Object[][]{
-                    // masterKeyStatus          // checkExistingLedger         // expectedException
+                    // masterKeyStatus          // checkExistingLedger          // expectedException
                     {VALID_KEY,                 true,                           false},
                     {VALID_KEY,                 false,                          true },
                     {NULL_KEY,                  true,                           true },
@@ -178,28 +178,33 @@ public class SortedLedgerStorageTest {
 
         private long ledgerToRead;
 
+        private boolean writeLedgerExists;
+        private boolean isFenced;
+
         private boolean expectedException;
         private int expectedSize;
 
         @Parameterized.Parameters
         public static Collection<Object[]> testParameters() {
             return Arrays.asList(new Object[][]{
-                    // entryListStatus          // masterKeyStatus           // read ledger status        // expectedException
-                    {ALL_VALID,                 VALID_KEY,                 EXISTING_LEDGER,             false},
-                    {ONE_NOT_VALID,             VALID_KEY,                 EXISTING_LEDGER,             true },
-                    {ONE_NULL,                  VALID_KEY,                 EXISTING_LEDGER,             true },
-                    {ALL_VALID,                 NULL_KEY,                  EXISTING_LEDGER,             true },
-                    {ONE_NOT_VALID,             NULL_KEY,                  EXISTING_LEDGER,             true },
-                    {ONE_NULL,                  NULL_KEY,                  EXISTING_LEDGER,             true },
-                    {ALL_VALID,                 VALID_KEY,                 NOT_EXISTING_LEDGER,         true },
-                    {ONE_NOT_VALID,             VALID_KEY,                 NOT_EXISTING_LEDGER,         true },
-                    {ONE_NULL,                  VALID_KEY,                 NOT_EXISTING_LEDGER,         true },
-                    {ALL_VALID,                 NULL_KEY,                  NOT_EXISTING_LEDGER,         true },
-                    {ONE_NOT_VALID,             NULL_KEY,                  NOT_EXISTING_LEDGER,         true },
-                    {ONE_NULL,                  NULL_KEY,                  NOT_EXISTING_LEDGER,         true }
+                    // entryListStatus          // masterKeyStatus         // read ledger status     // writeLedger status      // isFenced         // expectedException
+                    {ALL_VALID,                 VALID_KEY,                 EXISTING_LEDGER,             NOT_EXISTING_LEDGER,    false,              true },
+                    {ALL_VALID,                 VALID_KEY,                 EXISTING_LEDGER,             EXISTING_LEDGER,        false,              false},
+                    {ALL_VALID,                 VALID_KEY,                 EXISTING_LEDGER,             EXISTING_LEDGER,        true,               false},
+                    {ONE_NOT_VALID,             VALID_KEY,                 EXISTING_LEDGER,             EXISTING_LEDGER,        false,              true },
+                    {ONE_NULL,                  VALID_KEY,                 EXISTING_LEDGER,             EXISTING_LEDGER,        false,              true },
+                    {ALL_VALID,                 NULL_KEY,                  EXISTING_LEDGER,             EXISTING_LEDGER,        false,              true },
+                    {ONE_NOT_VALID,             NULL_KEY,                  EXISTING_LEDGER,             EXISTING_LEDGER,        false,              true },
+                    {ONE_NULL,                  NULL_KEY,                  EXISTING_LEDGER,             EXISTING_LEDGER,        false,              true },
+                    {ALL_VALID,                 VALID_KEY,                 NOT_EXISTING_LEDGER,         EXISTING_LEDGER,        false,              true },
+                    {ONE_NOT_VALID,             VALID_KEY,                 NOT_EXISTING_LEDGER,         EXISTING_LEDGER,        false,              true },
+                    {ONE_NULL,                  VALID_KEY,                 NOT_EXISTING_LEDGER,         EXISTING_LEDGER,        false,              true },
+                    {ALL_VALID,                 NULL_KEY,                  NOT_EXISTING_LEDGER,         EXISTING_LEDGER,        false,              true },
+                    {ONE_NOT_VALID,             NULL_KEY,                  NOT_EXISTING_LEDGER,         EXISTING_LEDGER,        false,              true },
+                    {ONE_NULL,                  NULL_KEY,                  NOT_EXISTING_LEDGER,         EXISTING_LEDGER,        false,              true }
             });}
 
-        public EntryGenerationTest(Utility.EntryListStatus entryListStatus, Utility.MasterKeyStatus masterKeyStatus, Utility.ReadLedgerStatus ledgerStatus, boolean expectedException ){
+        public EntryGenerationTest(Utility.EntryListStatus entryListStatus, Utility.MasterKeyStatus masterKeyStatus, Utility.LedgerStatus readLedgerStatus,  Utility.LedgerStatus writeLedgerStatus, boolean isFenced, boolean expectedException ){
             Random random = new Random();
             // MIN 1 repetition
             this.entryListSize = random.nextInt(MAX_REPETITIONS-1)+1;
@@ -226,7 +231,7 @@ public class SortedLedgerStorageTest {
             };
 
 
-            if( ledgerStatus == EXISTING_LEDGER) {
+            if( readLedgerStatus == EXISTING_LEDGER) {
                 this.ledgerToRead = EXISTING_LEDGER_ID;
                 this.expectedSize = this.entryListSize;
             }else {
@@ -245,6 +250,11 @@ public class SortedLedgerStorageTest {
                     // dummy with no op
                 }
             };
+
+
+            this.writeLedgerExists = writeLedgerStatus == EXISTING_LEDGER;
+
+            this.isFenced = isFenced;
 
         }
         private void setMasterKey(Utility.MasterKeyStatus masterKeyStatus) {
@@ -357,6 +367,14 @@ public class SortedLedgerStorageTest {
             boolean actualException = false;
             try {
                 this.storageUnderTest.setMasterKey(EXISTING_LEDGER_ID, this.masterKey);
+                if(this.isFenced)
+                    this.storageUnderTest.setFenced(EXISTING_LEDGER_ID);
+
+                // Assert if is fenced
+                Assert.assertEquals(this.isFenced, this.storageUnderTest.isFenced(EXISTING_LEDGER_ID));
+
+                if(!this.writeLedgerExists)
+                    this.storageUnderTest.deleteLedger(EXISTING_LEDGER_ID);
 
                 // add all
                 for (ByteBuf entry : this.entryList) {
