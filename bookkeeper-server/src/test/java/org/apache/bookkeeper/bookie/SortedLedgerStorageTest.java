@@ -381,7 +381,6 @@ public class SortedLedgerStorageTest {
                     this.storageUnderTest.addEntry(entry);
                 }
 
-                // check all entry in order
                 PrimitiveIterator.OfLong entryIdIterator = this.storageUnderTest.getListOfEntriesOfLedger(this.ledgerToRead);
 
                 int actualSize = 0;
@@ -399,8 +398,10 @@ public class SortedLedgerStorageTest {
                 byte actualPayloadByte;
 
                 while(entryIdIterator.hasNext()) {
-                    // consume long
-                    entryIdIterator.nextLong();
+                    long entryId = entryIdIterator.nextLong();
+
+                    // check order in SortedLedgerStorage
+                    Assert.assertEquals( actualSize, entryId);
                     actualSize ++;
                 }
 
