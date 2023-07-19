@@ -323,10 +323,12 @@
             <version>${pitest.version}</version>
             <configuration>
               <targetClasses>
-                  <param>org.apache.bookkeeper.bookie.BookieImpl</param>
-              </targetClasses>
-              <targetTests>
-                <param>org.apache.bookkeeper.bookie.BookieImplEntryTest</param>
+                <param>org.apache.bookkeeper.bookie.BookieImpl</param>
+                <param>org.apache.bookkeeper.bookie.SortedLedgerStorage</param>
+            </targetClasses>
+            <targetTests>
+              <param>org.apache.bookkeeper.bookie.BookieImplEntryTest</param>
+                <param>org.apache.bookkeeper.bookie.SortedLedgerStorageTest</param>
               </targetTests>
               <avoidCallsTo>
                 <avoidCallsTo>org.slf4j</avoidCallsTo>
