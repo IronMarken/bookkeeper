@@ -337,10 +337,14 @@ public class SortedLedgerStorageTest {
             try {
                 this.tempDir = IOUtils.createTempDir(TEMP_DIR_NAME, ".tmp");
                 ServerConfiguration serverConfiguration = TestBKConfiguration.newServerConfiguration();
-                serverConfiguration.setLedgerDirNames(new String[] { tempDir.toString() });
+                String[] dirs = new String[]{this.tempDir.getAbsolutePath()};
+                serverConfiguration.setLedgerDirNames(dirs);
+
                 LedgerManager mockedLedgerManager = Mockito.mock(LedgerManager.class);
-                LedgerDirsManager ledgerDirsManager = new LedgerDirsManager(serverConfiguration, serverConfiguration.getLedgerDirs(),
-                        new DiskChecker(serverConfiguration.getDiskUsageThreshold(), serverConfiguration.getDiskUsageWarnThreshold()));
+
+                DiskChecker diskChecker = BookieResources.createDiskChecker(serverConfiguration);
+                LedgerDirsManager ledgerDirsManager = BookieResources.createLedgerDirsManager(serverConfiguration, diskChecker, NullStatsLogger.INSTANCE);
+
                 this.storageUnderTest.initialize(serverConfiguration, mockedLedgerManager, ledgerDirsManager, ledgerDirsManager,
                         NullStatsLogger.INSTANCE, UnpooledByteBufAllocator.DEFAULT);
 
