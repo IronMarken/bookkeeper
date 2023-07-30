@@ -165,7 +165,7 @@ public class SortedLedgerStorageTest {
         private final String TEMP_DIR_NAME = "testTempDir";
         private final String PAYLOAD = "valid_payload";
         private final String VALID_MASTER_KEY = "valid_key";
-        private final int MAX_REPETITIONS = 5;
+        private final int MAX_REPETITIONS = 1000;
         private final long EXISTING_LEDGER_ID = 0;
         private final long NOT_EXISTING_LEDGER_ID = 1;
         private SortedLedgerStorage storageUnderTest;

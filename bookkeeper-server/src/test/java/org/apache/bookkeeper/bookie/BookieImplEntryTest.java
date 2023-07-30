@@ -269,7 +269,7 @@ public class BookieImplEntryTest {
         private final String PAYLOAD = "valid_payload";
         private final String JOURNAL_DIR = "temp_journal";
         private final String LEDGER_DIR = "temp_ledger";
-        private final int MAX_REPETITIONS = 5;
+        private final int MAX_REPETITIONS = 1000;
         protected boolean ackBeforeSync;
         private Object ctx;
         private byte[] masterKey;
